@@ -1,6 +1,7 @@
-// next.config.js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+// next.config.ts
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -8,7 +9,6 @@ const nextConfig = {
     };
     return config;
   },
-  // Enable static file serving from public directory
   async headers() {
     return [
       {
@@ -24,4 +24,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

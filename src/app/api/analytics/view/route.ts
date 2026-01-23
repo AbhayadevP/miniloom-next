@@ -1,48 +1,36 @@
-// src/app/api/videos/[id]/route.ts
+// src/app/api/analytics/view/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    const { id } = params;
+    const { videoId } = await request.json();
 
-    const video = await prisma.video.findUnique({
-      where: { id },
-      include: {
-        analytics: {
-          orderBy: { timestamp: 'desc' },
+    if (!videoId) {
+      return NextResponse.json(
+        { error: 'Video ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Increment view count
+    const video = await prisma.video.update({
+      where: { id: videoId },
+      data: {
+        views: {
+          increment: 1,
         },
       },
     });
 
-    if (!video) {
-      return NextResponse.json(
-        { error: 'Video not found' },
-        { status: 404 }
-      );
-    }
-
-    // Calculate average completion rate
-    const avgCompletion = video.analytics.length > 0
-      ? video.analytics.reduce((sum, a) => sum + a.completionRate, 0) / video.analytics.length
-      : 0;
-
     return NextResponse.json({
-      id: video.id,
-      filename: video.filename,
-      filepath: video.filepath,
-      duration: video.duration,
+      success: true,
       views: video.views,
-      avgCompletion: Math.round(avgCompletion),
-      createdAt: video.createdAt,
     });
   } catch (error) {
-    console.error('Error fetching video:', error);
+    console.error('Error tracking view:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch video' },
+      { error: 'Failed to track view' },
       { status: 500 }
     );
   }
