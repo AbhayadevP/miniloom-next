@@ -1,0 +1,28 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Video {
+  id          String   @id @default(cuid())
+  filename    String
+  filepath    String
+  duration    Float
+  createdAt   DateTime @default(now())
+  views       Int      @default(0)
+  analytics   Analytics[]
+}
+
+model Analytics {
+  id              String   @id @default(cuid())
+  videoId         String
+  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  watchedDuration Float
+  completionRate  Float
+  timestamp       DateTime @default(now())
+}
