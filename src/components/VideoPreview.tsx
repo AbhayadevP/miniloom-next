@@ -1,7 +1,7 @@
 // src/components/VideoPreview.tsx
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface VideoPreviewProps {
   videoBlob: Blob | null;
@@ -10,11 +10,15 @@ interface VideoPreviewProps {
 
 export default function VideoPreview({ videoBlob, onDurationLoad }: VideoPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [durationLoaded, setDurationLoaded] = useState(false);
 
   useEffect(() => {
     if (videoBlob && videoRef.current) {
       const url = URL.createObjectURL(videoBlob);
       videoRef.current.src = url;
+
+      // Force load metadata
+      videoRef.current.load();
 
       return () => URL.revokeObjectURL(url);
     }
@@ -22,9 +26,24 @@ export default function VideoPreview({ videoBlob, onDurationLoad }: VideoPreview
 
   const handleLoadedMetadata = () => {
     if (videoRef.current && onDurationLoad) {
-      onDurationLoad(videoRef.current.duration);
+      const duration = videoRef.current.duration;
+      console.log('Video metadata loaded, duration:', duration);
+      onDurationLoad(duration);
+      setDurationLoaded(true);
     }
   };
+
+  // Try to get duration after a delay if metadata doesn't load
+  useEffect(() => {
+    if (videoBlob && !durationLoaded) {
+      const timer = setTimeout(() => {
+        if (videoRef.current && videoRef.current.duration) {
+          handleLoadedMetadata();
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [videoBlob, durationLoaded]);
 
   if (!videoBlob) return null;
 
@@ -36,6 +55,13 @@ export default function VideoPreview({ videoBlob, onDurationLoad }: VideoPreview
         controls
         className="w-full rounded-lg"
         onLoadedMetadata={handleLoadedMetadata}
+        preload="metadata"
+        onCanPlay={() => {
+          // Another chance to get duration
+          if (videoRef.current && !durationLoaded) {
+            handleLoadedMetadata();
+          }
+        }}
       />
     </div>
   );
