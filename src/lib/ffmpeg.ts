@@ -1,4 +1,4 @@
-// src/lib/ffmpeg.ts
+// src/lib/ffmpeg.ts - FIXED VERSION
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL } from '@ffmpeg/util';
 
@@ -52,5 +52,10 @@ export async function trimVideo(
   await ffmpegInstance.deleteFile(inputFileName);
   await ffmpegInstance.deleteFile(outputFileName);
 
-  return new Blob([data], { type: 'video/webm' });
+  // FIX: Convert FileData to Uint8Array before creating Blob
+  // The issue is that FileData might be Uint8Array<ArrayBufferLike> which 
+  // could include SharedArrayBuffer, not compatible with Blob constructor
+  const uint8Array = new Uint8Array(data as unknown as ArrayBuffer);
+  
+  return new Blob([uint8Array], { type: 'video/webm' });
 }
