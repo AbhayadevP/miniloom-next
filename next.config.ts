@@ -2,18 +2,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 🔥 This line prevents Vercel Turbopack crash
-  turbopack: {},
+  // Webpack configuration for ffmpeg.wasm
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Enable WebAssembly support
+      config.experiments = {
+        ...config.experiments,
+        asyncWebAssembly: true,
+      };
+    }
 
-  webpack: (config) => {
-    // Required for ffmpeg.wasm
-    config.experiments = {
-      ...config.experiments,
-      asyncWebAssembly: true,
-      layers: true,
-    };
-
-    // Prevent "fs" errors in browser build
+    // Prevent "fs" module errors in browser
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -22,6 +21,7 @@ const nextConfig: NextConfig = {
     return config;
   },
 
+  // CORS headers for uploaded videos
   async headers() {
     return [
       {
@@ -30,6 +30,14 @@ const nextConfig: NextConfig = {
           {
             key: "Cross-Origin-Resource-Policy",
             value: "cross-origin",
+          },
+          {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "require-corp",
+          },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
           },
         ],
       },
