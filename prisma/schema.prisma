@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -25,9 +25,4 @@ model Analytics {
   watchedDuration Float
   completionRate  Float
   timestamp       DateTime @default(now())
-}
-
-datasource db {
-  provider = "postgresql"  // Changed from "sqlite"
-  url      = env("DATABASE_URL")
 }
