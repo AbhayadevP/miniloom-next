@@ -26,3 +26,8 @@ model Analytics {
   completionRate  Float
   timestamp       DateTime @default(now())
 }
+
+datasource db {
+  provider = "postgresql"  // Changed from "sqlite"
+  url      = env("DATABASE_URL")
+}
