@@ -181,7 +181,7 @@ export default function HomePage() {
         </h1>
 
         {/* Debug Panel */}
-        <div className="max-w-2xl mx-auto mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        {/* <div className="max-w-2xl mx-auto mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <h3 className="font-bold text-blue-900 mb-2">🐛 DEBUG PANEL</h3>
           <div className="text-xs space-y-1">
             <p>recordedBlob: {recordedBlob ? '✅ EXISTS' : '❌ NULL'} ({recordedBlob?.size || 0} bytes)</p>
@@ -192,7 +192,7 @@ export default function HomePage() {
             <p>loadingDuration: {loadingDuration ? '⏳ YES' : '❌ NO'}</p>
             <p>Attempts: {durationCheckAttempts.current}/15</p>
           </div>
-        </div>
+        </div> */}
 
         <Recorder onRecordingComplete={handleRecordingComplete} />
 
