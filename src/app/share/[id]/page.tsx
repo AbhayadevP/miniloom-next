@@ -1,9 +1,9 @@
-// src/app/share/[id]/page.tsx
+// src/app/share/[id]/page.tsx - FIXED VERSION
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Eye, TrendingUp, Loader2 } from 'lucide-react';
+import { Eye, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
 
 interface VideoData {
   id: string;
@@ -17,7 +17,7 @@ interface VideoData {
 
 export default function SharePage() {
   const params = useParams();
-  const videoId = params.id as string;
+  const videoId = params?.id as string;
 
   const [video, setVideo] = useState<VideoData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,17 +30,36 @@ export default function SharePage() {
   // Fetch video data
   useEffect(() => {
     const fetchVideo = async () => {
+      console.log('🔍 Fetching video with ID:', videoId);
+      
+      if (!videoId) {
+        console.error('❌ No video ID provided');
+        setError('No video ID provided');
+        setLoading(false);
+        return;
+      }
+
       try {
+        console.log('📡 Making request to:', `/api/videos/${videoId}`);
         const response = await fetch(`/api/videos/${videoId}`);
         
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response ok:', response.ok);
+
         if (!response.ok) {
-          throw new Error('Video not found');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('❌ Response not OK:', errorData);
+          throw new Error(errorData.error || `HTTP ${response.status}: Video not found`);
         }
 
         const data = await response.json();
+        console.log('✅ Video data received:', data);
         setVideo(data);
+        setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load video');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load video';
+        console.error('❌ Fetch error:', errorMessage);
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -48,21 +67,29 @@ export default function SharePage() {
 
     if (videoId) {
       fetchVideo();
+    } else {
+      setError('No video ID in URL');
+      setLoading(false);
     }
   }, [videoId]);
 
   // Track view (only once per session)
   useEffect(() => {
     if (video && !viewTrackedRef.current) {
+      console.log('👁️ Tracking view for video:', video.id);
       fetch('/api/analytics/view', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoId: video.id }),
-      }).then(() => {
-        viewTrackedRef.current = true;
-        // Update local view count
-        setVideo(prev => prev ? { ...prev, views: prev.views + 1 } : null);
-      });
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('✅ View tracked:', data);
+          viewTrackedRef.current = true;
+          // Update local view count
+          setVideo(prev => prev ? { ...prev, views: prev.views + 1 } : null);
+        })
+        .catch(err => console.error('❌ Failed to track view:', err));
     }
   }, [video]);
 
@@ -77,15 +104,19 @@ export default function SharePage() {
     if (currentTime - lastWatchTimeRef.current >= 1) {
       lastWatchTimeRef.current = currentTime;
 
-      await fetch('/api/analytics/watch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoId: video.id,
-          watchedDuration: currentTime,
-          totalDuration: duration,
-        }),
-      });
+      try {
+        await fetch('/api/analytics/watch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoId: video.id,
+            watchedDuration: currentTime,
+            totalDuration: duration,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to track watch time:', err);
+      }
     }
   };
 
@@ -130,10 +161,26 @@ export default function SharePage() {
 
   if (error || !video) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-700">{error || 'Video not found'}</p>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+          <div className="flex items-center justify-center mb-4">
+            <AlertCircle className="text-red-600" size={48} />
+          </div>
+          <h2 className="text-2xl font-bold text-red-600 mb-4 text-center">Error</h2>
+          <p className="text-gray-700 text-center mb-4">
+            {error || 'Video not found'}
+          </p>
+          <div className="text-sm text-gray-500 text-center">
+            <p>Video ID: {videoId || 'Not provided'}</p>
+          </div>
+          <div className="mt-6 text-center">
+            <a
+              href="/"
+              className="text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              ← Go back to home
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -151,6 +198,10 @@ export default function SharePage() {
               controls
               className="w-full"
               controlsList="nodownload"
+              onError={(e) => {
+                console.error('❌ Video playback error:', e);
+                setError(`Failed to load video file: ${video.filepath}`);
+              }}
             />
           </div>
 
@@ -203,8 +254,8 @@ export default function SharePage() {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          
-           <a href="/"
+          <a
+            href="/"
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
             Create your own recording →
